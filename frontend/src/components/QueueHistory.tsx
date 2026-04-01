@@ -41,24 +41,24 @@ const QueueHistory: React.FC = () => {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       
       let filteredData = data;
       
       if (filter === 'today') {
         filteredData = data.filter((item: QueueItem) => {
-          const itemDate = new Date(item.date_creation);
+          const itemDate = item.date_appel ? new Date(item.date_appel) : new Date(item.date_creation);
           return itemDate >= today;
         });
       } else if (filter === 'week') {
         filteredData = data.filter((item: QueueItem) => {
-          const itemDate = new Date(item.date_creation);
+          const itemDate = item.date_appel ? new Date(item.date_appel) : new Date(item.date_creation);
           return itemDate >= weekAgo;
         });
       } else if (filter === 'month') {
         filteredData = data.filter((item: QueueItem) => {
-          const itemDate = new Date(item.date_creation);
-          return itemDate >= monthAgo;
+          const itemDate = item.date_appel ? new Date(item.date_appel) : new Date(item.date_creation);
+          return itemDate >= monthStart;
         });
       }
       
