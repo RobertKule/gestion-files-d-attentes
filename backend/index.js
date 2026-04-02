@@ -8,10 +8,8 @@ const path = require('path');
 const pool = require('./config/database');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
-// Requis pour express-rate-limit sur Render/Vercel (proxies)
 app.set('trust proxy', 1);
+const PORT = process.env.PORT || 5000;
 
 // Sécurité HTTP headers
 app.use(helmet());
@@ -45,8 +43,20 @@ const publicLimiter = rateLimit({
 });
 
 // Middleware
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:3000',
+  'https://gestion-files-d-attentes.vercel.app'
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Non autorisé par CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

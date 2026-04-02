@@ -3,22 +3,26 @@ const { webpush } = require('../utils/webpush');
 
 // Créer la table push_subscriptions si elle n'existe pas
 const initPushTable = async () => {
-  const isPostgres = !!process.env.DATABASE_URL;
+  const isPostgres = !!process.env.DATABASE_URL || process.env.NODE_ENV === 'production';
   const idType = isPostgres ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
   const dateType = isPostgres ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP';
 
-  await pool.execute(`
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id ${idType},
-      patient_id INTEGER NOT NULL,
-      service_id INTEGER,
-      endpoint TEXT NOT NULL,
-      keys TEXT,
-      created_at ${dateType},
-      FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
-    )
-  `);
-  console.log('Table push_subscriptions initialisée');
+  try {
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id ${idType},
+        patient_id INTEGER NOT NULL,
+        service_id INTEGER,
+        endpoint TEXT NOT NULL,
+        keys TEXT,
+        created_at ${dateType},
+        FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+      )
+    `);
+    console.log(`Table push_subscriptions initialisée (${isPostgres ? 'PostgreSQL' : 'SQLite'})`);
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation de la table push:', error);
+  }
 };
 
 // Initialiser au démarrage
