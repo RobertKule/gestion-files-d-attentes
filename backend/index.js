@@ -10,6 +10,9 @@ const pool = require('./config/database');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Requis pour express-rate-limit sur Render/Vercel (proxies)
+app.set('trust proxy', 1);
+
 // Sécurité HTTP headers
 app.use(helmet());
 
@@ -54,8 +57,12 @@ app.use(express.urlencoded({ extended: true }));
 // Initialize database
 const initDatabase = async () => {
   try {
-    const sqlPath = path.join(__dirname, 'utils', 'init-sqlite.sql');
+    const isPostgres = !!process.env.DATABASE_URL;
+    const sqlFile = isPostgres ? 'init-postgres.sql' : 'init-sqlite.sql';
+    const sqlPath = path.join(__dirname, 'utils', sqlFile);
     const sql = fs.readFileSync(sqlPath, 'utf8');
+
+    console.log(`Initialisation de la base de données (${isPostgres ? 'PostgreSQL' : 'SQLite'})...`);
 
     // Split SQL commands and execute them
     const commands = sql.split(';').filter(cmd => cmd.trim().length > 0);
@@ -66,16 +73,14 @@ const initDatabase = async () => {
       }
     }
 
-    // Ajouter les colonnes de réinitialisation de mot de passe si elles n'existent pas
-    try {
-      await pool.execute('ALTER TABLE utilisateurs ADD COLUMN reset_token TEXT');
-    } catch (e) {
-      // La colonne existe peut-être déjà
-    }
-    try {
-      await pool.execute('ALTER TABLE utilisateurs ADD COLUMN reset_token_expires DATETIME');
-    } catch (e) {
-      // La colonne existe peut-être déjà
+    if (!isPostgres) {
+      // Ajouter les colonnes de réinitialisation de mot de passe si elles n'existent pas (SQLite uniquement)
+      try {
+        await pool.execute('ALTER TABLE utilisateurs ADD COLUMN reset_token TEXT');
+      } catch (e) {}
+      try {
+        await pool.execute('ALTER TABLE utilisateurs ADD COLUMN reset_token_expires DATETIME');
+      } catch (e) {}
     }
 
     console.log('Database initialized successfully');
